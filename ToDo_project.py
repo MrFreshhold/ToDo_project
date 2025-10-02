@@ -11,13 +11,14 @@ class ToDoList:
         self.cur = self.connect.cursor()
 
         self.cur.execute("""CREATE TABLE IF NOT EXISTS users
-                        (id INTEGER PRIMARY KEY,
-                         password TEXT, 
-                         name TEXT)""" )
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         login TEXT UNIQUE NOT NULL, 
+                         name TEXT NOT NULL,
+                         password TEXT UNIQUE NOT NULL)""" )
         '''Таблица пользователей'''
 
         self.cur.execute("""CREATE TABLE IF NOT EXISTS task_list
-                        (id INTEGER PRIMARY KEY, 
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                          name TEXT, 
                          text TEXT, 
                          deadline TEXT, 
@@ -34,13 +35,8 @@ class ToDoList:
     def create(self, name: str, text: str, deadline: str, status: str, importance: str, user_id: int):
         '''метод класса для создания задачи с пользовательскими параметрами и порядковым айди'''
 
-        self.cur.execute("""SELECT id FROM task_list""")
-        id_list = self.cur.fetchall()
-        new_id = len(id_list) + 1
-        '''блок создания нового порядкового айди задачи'''
-
-        self.cur.execute(f"""INSERT INTO task_list (id, name, text, deadline, status, importance, user_id)
-                         VALUES({new_id}, '{name}', '{text}', '{deadline}', '{status}', '{importance}', {user_id})""")
+        sql = """INSERT INTO task_list (name, text, deadline, status, importance, user_id) VALUES (?,?,?,?,?,?)"""
+        self.cur.execute(sql, (name, text, deadline, status, importance, user_id))
         
         self.connect.commit()
         
@@ -51,7 +47,8 @@ class ToDoList:
         if (user_id == 0):
             user_id = '*'
 
-        self.cur.execute(f"""SELECT * FROM task_list WHERE user_id = {user_id}""")
+        sql = """SELECT * FROM task_list WHERE user_id = ?"""
+        self.cur.execute(sql, (user_id,))
         tasks = self.cur.fetchall()
 
         for task in tasks:
@@ -63,7 +60,8 @@ class ToDoList:
         
         try:
             
-            self.cur.execute(f"""UPDATE task_list SET status = '{status}' WHERE id = {id}""")
+            sql = """UPDATE task_list SET status = ? WHERE id = ?"""
+            self.cur.execute(sql, (status, id))
 
         except: 
 
@@ -75,7 +73,8 @@ class ToDoList:
     def delete(self, id: int):
         '''удаление задачи по ее айди'''
 
-        self.cur.execute(f"""DELETE FROM task_list WHERE id = {id}""")
+        sql = """DELETE FROM task_list WHERE id = ?"""
+        self.cur.execute(sql, (id,))
 
         self.connect.commit()
 
@@ -92,43 +91,23 @@ class User:
         self.cur = self.connect.cursor()
 
 
-    def create_user(self, user_name: str, password: str):
+    def create_user(self, user_login: str, name: str, password: str):
 
-        self.cur.execute("""SELECT id FROM users""")
-        id_list = self.cur.fetchall()
-        new_id = len(id_list) + 1
-        '''создание порядкового айди пользователя'''
 
-        self.cur.execute("""SELECT name FROM users""")
-        name_list = self.cur.fetchall()
-
-        while (True):
-
-            for names in name_list:
-
-                for name in names:
-
-                    if (name == user_name):
-
-                        user_name = input('имя пользователя существует, введите другое: ')
-
-            break
-        '''проверка существующих  имен. 2 цикла for так как получаем массив из списков и их тоже надо открыть'''
-
-        self.cur.execute(f"""INSERT INTO users (id, name, password) VALUES ({new_id}, '{user_name}', '{password}')""")
+        sql = """INSERT INTO users (name, login, password) VALUES (?, ?, ?)"""
+        self.cur.execute(sql, (name, user_login, password))
 
         self.connect.commit()
     
 
-    def check_id(self, name: str):
-        '''проверка своего айди по имени пользователя'''
+    def check_id(self, login: str):
+        '''проверка своего айди по логину пользователя'''
         
-        self.cur.execute(f"""SELECT id FROM users WHERE name = '{name}'""")
+        sql = """SELECT id FROM users WHERE login = ?"""
+        self.cur.execute(sql, (login,))
         id = self.cur.fetchall()
 
         print(id)
-
-
 
 
 
@@ -138,19 +117,19 @@ FirstList = ToDoList('first_list')
 
 # cjplfybt gjkmpjdfntkz
 Danil = User('first_list')
-# Danil.create_user('Danil', '123')
-Danil.check_id('Danil')
+Danil.create_user('Mrf','Danil', '123')
+Danil.check_id('Mrf')
 
 # коннект для работы с бд
 connect = sqlite3.connect(f"first_list.db")
 cur = connect.cursor()
 
-# вывод списка имен
-# cur.execute("""SELECT name FROM users """)
-# names = cur.fetchall()
-# for name in names:
-#     for user_name in name:
-#         print (user_name)
+# вывод списка логинов
+cur.execute("""SELECT login FROM users""")
+logins = cur.fetchall()
+for login in logins:
+    for user_login in login:
+        print (user_login)
 
 # проверка указания айди задачи
 # cur.execute("""SELECT id FROM task_list""")
