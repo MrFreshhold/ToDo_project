@@ -14,12 +14,12 @@ class ToDoList:
                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
                          login TEXT UNIQUE NOT NULL, 
                          name TEXT NOT NULL,
-                         password TEXT UNIQUE NOT NULL)""" )
+                         password TEXT NOT NULL)""" )
         '''Таблица пользователей'''
 
         self.cur.execute("""CREATE TABLE IF NOT EXISTS task_list
                         (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                         name TEXT, 
+                         name TEXT NOT NULL, 
                          text TEXT, 
                          deadline TEXT, 
                          status TEXT, 
@@ -32,16 +32,17 @@ class ToDoList:
         self.connect.commit()
 
     
-    def create(self, name: str, text: str, deadline: str, status: str, importance: str, user_id: int):
+    def create_task(self, name: str, text: str, deadline: str, importance: str, user_id: int):
         '''метод класса для создания задачи с пользовательскими параметрами и порядковым айди'''
 
+        status = 'выдана'
         sql = """INSERT INTO task_list (name, text, deadline, status, importance, user_id) VALUES (?,?,?,?,?,?)"""
         self.cur.execute(sql, (name, text, deadline, status, importance, user_id))
         
         self.connect.commit()
         
     
-    def read(self, user_id: int):
+    def read_task(self, user_id: int):
         '''метод класса для вывода задач по определенному user_id. для вывода всех задач введите 0 id'''
 
         if (user_id == 0):
@@ -70,7 +71,7 @@ class ToDoList:
         self.connect.commit()
     
     
-    def delete(self, id: int):
+    def delete_task(self, id: int):
         '''удаление задачи по ее айди'''
 
         sql = """DELETE FROM task_list WHERE id = ?"""
@@ -80,17 +81,7 @@ class ToDoList:
 
         print('Задача удалена')
 
-
-
-class User:
-    def __init__(self,file_name: str):
-        '''Класс пользователя с уникальным порядковым айди и именем и почти личным паролем'''
-
-        self.file_name = file_name
-        self.connect = sqlite3.connect(f"{self.file_name}.db")
-        self.cur = self.connect.cursor()
-
-
+    
     def create_user(self, user_login: str, name: str, password: str):
 
 
@@ -98,7 +89,7 @@ class User:
         self.cur.execute(sql, (name, user_login, password))
 
         self.connect.commit()
-    
+
 
     def check_id(self, login: str):
         '''проверка своего айди по логину пользователя'''
@@ -110,37 +101,102 @@ class User:
         print(id)
 
 
+    def check_user(self, login: str, password: str):
+        '''возвращает статус входа в булевом формате'''
+
+        sql = """SELECT * FROM users WHERE login = ? AND password = ?"""
+        self.cur.execute(sql, (login, password))
+
+        status = self.cur.fetchall()
+
+        if (len(status) > 0):
+
+            status = 1
+        
+        else:
+
+            status = 0
+        
+        return status
 
 
 
-FirstList = ToDoList('first_list')
+file_name = input('Это программа TODO подключаемая к вашей БД, если БД не существует, будет создана новая \nвведите имя файла: ')
+task_list = ToDoList(file_name)
 
-# cjplfybt gjkmpjdfntkz
-Danil = User('first_list')
-Danil.create_user('Mrf','Danil', '123')
-Danil.check_id('Mrf')
 
-# коннект для работы с бд
-connect = sqlite3.connect(f"first_list.db")
-cur = connect.cursor()
+while (True):
 
-# вывод списка логинов
-cur.execute("""SELECT login FROM users""")
-logins = cur.fetchall()
-for login in logins:
-    for user_login in login:
-        print (user_login)
+    answer = input('хотите 1. войти или 2. зарегистрироваться?')
 
-# проверка указания айди задачи
-# cur.execute("""SELECT id FROM task_list""")
-# id_list = cur.fetchall()
-# new_id = len(id_list) + 1
-# print(id_list)
-# print(new_id)
+    if (answer.lower() == 'войти' or answer == '1' ):
 
-# создание, проверка и удаление задачи
-FirstList.create('задача 1', 'тест', 'сегодня', 'выдана', 'важная', 1)
+        log = input('введите логин пользователя: ')
+        pas = input('введите пароль: ')
 
-FirstList.read(1)
+        status = task_list.check_user(log, pas)
 
-FirstList.delete(1)
+        if (status == 1):
+
+            print ('вы успешно вошли!')
+            break
+        
+        else:
+
+            print ('логин или пароль указаны неверно')
+
+
+    elif (answer.lower() == 'зарегистрироваться' or answer == '2'):
+
+        log = input('введите логин пользователя: ')
+        name = input(' введите имя пользователя')
+        pas = input('введите пароль: ')
+        
+        task_list.create_user(log, name, pas)
+
+        
+    else:
+
+        print('такой команды не существует')
+
+while (True):
+
+    answer = input('что вы хотите сделать?' \
+    '1. создать задачу' \
+    '2. просмотреть задачи по id пользователя' \
+    '3. обновить статус задачи' \
+    '4. удалить задачу')
+
+    if (answer == 1):
+
+        name = input('имя задачи')
+        text =input('задачу')
+        deadline = input('дедлайн задачи')
+        importance = input('приоритет задачи')
+        user_id = input('id пользователя')
+        user_id = int(user_id)
+
+        task_list.create_task(name, text, deadline, importance, user_id)
+
+    elif (answer == 2):
+
+        id = input('введите id пользователя')
+        id = int(id)
+        task_list.read_task(id)
+
+    elif (answer == 3):
+
+        id = input('введите id задачи')
+        id = int(id)
+        status = input('введите статус задачи')
+
+        task_list.update_task(id, status)
+
+    elif (answer == 4):
+
+        id = ('введите id задачи для ее удаления')
+        task_list.delete_task(id)
+    
+    else:
+
+        print('Такой команды не существует.')
